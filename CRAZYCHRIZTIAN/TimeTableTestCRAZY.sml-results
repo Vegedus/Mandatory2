@@ -1,0 +1,5 @@
+[addStop] ["Tram1" +> <.("A",11,60,"invalid",61),("B",6,10,"A",11),("A",0,5,"B",6).>]
+Unexecuted expressions in NET.rsl
+Complete expression coverage of TIMETABLEcrazybrancheditionversion.rsl
+TimeTableTestCRAZY.sml:9.1-9.36 Warning: type vars not generalized because of
+   value restriction are instantiated to dummy types (X1,X2,...)

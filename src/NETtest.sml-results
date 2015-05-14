@@ -1,0 +1,20 @@
+[empty] true
+[insertStop] true
+[addConnection] true
+[isIn1] true
+[isIn2] true
+[areDirectlyConnected1] true
+[areDirectlyConnected2] true
+[minDrivingTime] true
+[capacity1] false
+[capacity2] true
+[minWaitingTime] true
+[isWellformed] true
+[stop_not_connected_to_itself] true
+[connections_connect_only_existing_stops] true
+[time_and_capacity_greater_than_zero1] true
+[time_and_capacity_greater_than_zero2] true
+Complete expression coverage of NETtest.rsl
+Unexecuted expressions in NET.rsl
+NETtest.sml:9.1-9.36 Warning: type vars not generalized because of
+   value restriction are instantiated to dummy types (X1,X2,...)

@@ -1,0 +1,93 @@
+TIMETABLE
+scheme TimeTableTest = extend TIMETABLE with 
+  class
+    value 
+    	--goodTT1 : TimeTable = ["t1" +> <.("B",0,5),("A",8,15),("B",17,20).>, 
+	    --				   	   "t2" +> <.("C",0,3),("D",7,17),("C",18,20).>],
+    	
+		netStops : Net = insertStop("D",2,1,insertStop("C",2,1,insertStop("B",3,2,insertStop("A",2,1,empty)))),
+    	net : Net = addConnection("B","D",3,7,addConnection("B","C",2,12,addConnection("A","B",2,10,netStops))),
+    			   	
+    	goodTT1 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	   "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+
+    	tt4 : TimeTable = ["t1" +> <.("B",0,5),("A",8,15),("B",17,20).>, 
+    					   	  "t2" +> <.("A",0,3),("B",7,17),("A",18,20).>],
+    	tt2 : TimeTable = ["t1" +> <.("B",0,5).>, "t2" +> <.("A",0,1).>],
+    	tt3 : TimeTable = ["t1" +> <.("B",0,4),("A",4,6).>],
+    
+    --1) No trams with less than three stops
+       	badTTWF1 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,60).>],
+  	--2) Time should always be ascending, no time travel
+    	badTTWF2 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",13,10),("A",28,32),("B",47,50),("D",58,60).>],  		
+	--3) First arrival time in a plan should always be zero.
+	    badTTWF3 : TimeTable = ["tram1" +> <.("A",1,2),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],  	
+	--4) Tram time tables should all end at the same minute
+	    badTTWF4 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",58,59).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+	--5) Start and end at the same stop
+	    badTTWF5 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("D",57,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+  	--6) Only move via connections that exists in the net
+  	    badTTWF6 : TimeTable = ["tram1" +> <.("A",0,1),("D",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+	--7) Only move to stops that exists in the net (redundant given the one above?)
+	    badTTWF7 : TimeTable = ["tram1" +> <.("A",0,1),("E",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+	--8) Respect minimum driving time
+	    badTTWF8 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",8,13),("A",28,32),("B",47,50),("D",58,60).>],
+  	--9) Respect minimum waiting time
+  	    badTTWF9 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	    "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>],
+	--10 Respect Stop Capacity
+	    badTTWF10 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	     "tram2" +> <.("D",0,2),("B",10,11),("A",28,32),("B",47,50),("D",58,60).>],
+	--11 Respect Connection Capacity	
+	    badTTWF11 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	     "tram2" +> <.("A",0,2),("B",13,15),("A",28,32),("B",47,50),("D",58,60).>,
+    					   	     "tram3" +> <.("A",0,3),("B",14,20),("A",35,60).>],
+	--12) Two trains may not depart at the same time on the same connection
+	    badTTWF12 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,31),("B",46,48),("A",59,60).>, 
+    					   	     "tram2" +> <.("D",0,2),("B",10,14),("C",28,32),("B",47,50),("D",58,60).>],
+	--13) A train may not overtake another (depart later, but arrive before)
+	    badTTWF13 : TimeTable = ["tram1" +> <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60).>, 
+    					   	     "tram2" +> <.("D",0,2),("B",10,13),("C",29,33),("B",47,50),("D",58,60).>],
+    --14) Trams should not collide
+    	badTTWF14 : TimeTable = ["tram1" +> <.("A",0,1),("B",14,48),("A",58,60).>, 
+    					   	     "tram2" +> <.("D",0,2),("B",10,13),("A",28,32),("B",47,50),("D",58,60).>]
+		
+    test_case
+	  [addTram]
+	    addTram("t1",empty),
+	  [addStop]
+	    addStop("t1","B",9,14,addStop("t1","A",0,5,addTram("t1",empty))),
+	  [isWellFormed1]
+	  	isWellformed(goodTT1, net),
+	  	
+	  --Testing whether individual predicates correctly detects bad timetables.
+	  [WF1]
+	  	~noEmptyTrams(badTTWF1),
+	  [WF2]
+	  	~timesAscending(badTTWF2),
+	  [WF3]
+	  	~plansStartAtZero(badTTWF3),
+	  [WF4]
+	  	~tramsEndSimultaneously(badTTWF4),
+	  [WF5]
+	  	~endAtStart(badTTWF5),
+	  [WF6]
+	  	~connectionsExist(badTTWF6,net),
+	  [WF7]
+	  	~stopsExist(badTTWF7,net),
+	  [WF8]
+	  	~upholdMinWaitingTime(badTTWF8,net),
+	  [WF9]
+	  	~upholdMinDrivingTime(badTTWF9,net),
+	  [WF14]
+	  	~noCollisions(badTTWF14)  	
+	  	
+end

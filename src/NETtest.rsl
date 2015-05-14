@@ -1,0 +1,47 @@
+NET
+scheme NETtest = extend NET with
+class 
+	value
+    --net1 : Net = (["A" +> (2,3), "B" +> (1,2)],[("A","B") +>(2,10),("B","A") +>(2,10)]),
+    with_stops : Net = insertStop("D",2,1,insertStop("C",2,1,insertStop("B",3,2,insertStop("A",2,1,empty)))),
+    example : Net = addConnection("B","D",3,7,addConnection("B","C",2,12,addConnection("A","B",2,10,with_stops)))
+
+  test_case 
+	--[TestOutput]
+	--	addConnection("A","B",2,10,insertStop("B",1,2,insertStop("A",2,3,empty))),
+
+	[empty]
+		dom getStops(empty) = {} /\ dom getConnections(empty) = {},
+	[insertStop]
+		isIn("A",insertStop("A",1,1,empty)),
+	[addConnection]
+		areDirectlyConnected("A","D",addConnection("A","D",1,1,example)),
+	[isIn1]
+		isIn("A",empty) = false,
+	[isIn2]
+		isIn("A",example),
+	[areDirectlyConnected1]
+		areDirectlyConnected("A","D",example) = false,
+	[areDirectlyConnected2]
+		areDirectlyConnected("A","B",example),
+	[minDrivingTime]
+		minDrivingTime("A","B",example) = 10,
+	[capacity1]
+		capacity("A","B",example) = 1,
+	[capacity2]
+		capacity("A",example) = 2,
+	[minWaitingTime]
+		minWaitingTime("A",example) = 1,
+
+	[isWellformed]
+		isWellformed(example),
+	[stop_not_connected_to_itself]
+		stop_not_connected_to_itself(addConnection("A","A",1,1,example)) = false,
+	[connections_connect_only_existing_stops]
+		connections_connect_only_existing_stops(addConnection("A","Q",1,1,example)) = false,
+	[time_and_capacity_greater_than_zero1]
+		time_and_capacity_greater_than_zero(insertStop("Q",0,1,example)) = false,
+	[time_and_capacity_greater_than_zero2]
+		time_and_capacity_greater_than_zero(insertStop("Q",1,0,example)) = false
+end
+

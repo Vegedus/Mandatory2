@@ -1,0 +1,40 @@
+TIMETABLEcrazybrancheditionversion
+scheme TimeTableTestCRAZY = extend TIMETABLEcrazybrancheditionversion with 
+  class
+    value 
+    	
+
+    --1) No empty trams (no trams with less than two/three stops?)
+  	--2) No trams named the same thing
+  	
+  	--3) Only move via connections that exists in the net               	
+    --6) Respect minimum driving time
+	--4) Only move to stops that exists in the net
+	--5) Respect minimum waiting time
+	
+	--7) A train may not overtake another (depart later, but arrive before)
+		
+	--8) Two trains may not depart at the same time on the same connection
+	--9) Time should always be ascending, no time travel
+	
+	--10) Start and end at the same stop
+     	
+   	--11) Trams should not collide
+	--12) Tram time tables should all end at the same minute
+	--13) First arrival time in a plan should always be zero.
+
+
+		netStops : Net = insertStop("D",2,1,insertStop("C",2,1,insertStop("B",3,2,insertStop("A",2,1,empty)))),
+    	netComplete : Net = addConnection("B","D",3,7,addConnection("B","C",2,12,addConnection("A","B",2,10,netStops)))
+		
+    test_case
+	  --[addTram]
+	    --addTram("t1",empty),
+	  [addStop]
+	    addStop("Tram1","A",11,60, addStop("Tram1","B",6,10, addStop("Tram1","A",0,5,addTram("Tram1",empty))))
+	  /*[RequireNonEmptyTrams]
+	    ~reqNonEmptyTrams(tt1),
+	  [req2]
+	    reqNonEmptyTrams(tt3),
+	  [t] WF11( tt4, netComplete), [t2] WF11( tt5, netComplete)*/
+end

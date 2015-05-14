@@ -1,0 +1,185 @@
+NET
+scheme TIMETABLEcrazybrancheditionversion = extend NET with
+class
+  type 
+    TimeTable = TramId -m-> Plan, -- time tables
+    Plan = Stop-list,
+    Stop = StopId >< Time >< Time >< StopId >< Time,
+    TramId = Text -- tram names (Unchangeable)
+    	
+  value /* generators */
+    -- the empty timetable
+    empty: TimeTable = [],
+
+    -- add to a time table an empty plan for a new tram
+    addTram: TramId >< TimeTable -> TimeTable
+    addTram(tramId, timeTable) is
+    	timeTable union [tramId +> <..>],
+    	
+    -- add a stop with arrival time and departure time to the plan for a given tram
+    addStop: TramId >< StopId >< Time >< Time >< TimeTable -> TimeTable
+	  addStop(t,s,at,dt,tt) is
+      let plan = tt(t) in
+        if plan = <..> then
+          -- add first stop to plan
+          tt !! [t +> <.(s,at,dt,"is_overwritten",99).>]
+        else
+          let (hs,hat,hdt,foo,bar) = hd plan in
+            --                 new stop                 add info to head
+            tt !! [t +> (<.(s,at,dt,"invalid",61).> ^ <.(hs,hat,hdt,s,at).> ^ tl plan)]
+          end
+        end
+      end
+
+
+	    --timeTable !! [tramId +> (timeTable(tramId) ^ <.(stopId, arrivalTime, departTime).>)]
+/*
+  value -- observers
+    -- check whether a tram with a given name exists in a given time table
+    isIn : TramId >< TimeTable -> Bool
+    isIn(tramId,timeTable) is
+    	tramId isin (dom timeTable),    
+    
+    areAdjacentStops : Stop-list >< Stop >< Stop -> Bool
+    areAdjacentStops(sList, s1,s2) is
+    	if (tl sList) = <..> then false
+    	else if s1 = hd sList then
+	    		if s2 = hd (tl sList) then true
+	    		else false end
+		    else areAdjacentStops(tl sList,s1,s2) end
+	    end,
+	 
+	  getStopId : Stop -> StopId
+	  getStopId(s) is
+	  	let (sId,foo,bar) = s in sId end,
+	  	
+	  getStopIds : Stop >< Stop >< Net -> StopId >< StopId >< Net
+	  getStopIds(s1,s2,net) is
+	  	let (sId1,foo,bar) = s1, (sId2,foo,bar) = s2
+	  	in (sId1,sId2,net) end,
+	  
+	  getArrivalTime : Stop -> Time
+	  getArrivalTime(s) is
+	  	let (foo,aTime,bar) = s in aTime end,
+	  	
+      getDepartTime : Stop -> Time
+	  getDepartTime(s) is
+	  	let (foo,bar,dTime) = s in dTime end
+
+ 
+  value -- predicates to check time tables   
+    isWellformed : TimeTable >< Net -> Bool
+    isWellformed(t, n) is
+     	reqNonEmptyTrams(t),--/\ all the wf requirements
+     
+	  --1) No empty tram plans (no trams with less than two/three stops?)
+	  reqNonEmptyTrams : TimeTable -> Bool
+	  reqNonEmptyTrams (timeTable) is
+      (all tramId : TramId :-
+        tramId isin (dom timeTable) => --Cannot use the isIn observer because of the requirements for SML translation
+          (timeTable(tramId) ~= <..>)),
+               
+  	--2) No trams named the same thing
+  	
+  	--3) Only move via connections that exists in the net
+  	WF3 : TimeTable >< Net -> Bool
+  	WF3 (tt,net) is
+          (all tId : TramId :-
+          tId isin (dom tt) => 
+          	(all s1 : Stop :-
+              s1 isin tt(tId) =>
+              	(all s2 : Stop :-
+               	s2 isin tt(tId) /\ s1 ~= s2 /\ areAdjacentStops(tt(tId),s1,s2) =>
+  		             	areDirectlyConnected( getStopIds(s1,s2,net) ) ))),
+               	
+      --6) Respect minimum driving time (on connections)
+  	WF6 : TimeTable >< Net -> Bool
+  	WF6 (tt,net) is
+      (all tId : TramId :-
+        tId isin (dom tt) => 
+        	(all s1 : Stop :-
+            s1 isin tt(tId) =>
+          	(all s2 : Stop :-
+             	s2 isin tt(tId)  =>
+	            	areAdjacentStops(tt(tId),s1,s2) =>
+	            	(getArrivalTime(s2) - getDepartTime(s1)) <= minDrivingTime( getStopIds(s1,s2,net) ) ))),
+	   	
+	--4) Only move to stops that exists in the net
+	WF4 : TimeTable >< Net -> Bool
+	WF4 (tt,net) is
+        (all tId : TramId :-
+        tId isin (dom tt) => 
+        	(all s : Stop :-
+            s isin tt(tId) =>
+            	isIn( getStopId(s),net) )),
+	
+	--5) Respect minimum waiting time (at stops)
+	WF5 : TimeTable >< Net -> Bool
+	WF5 (tt,net) is
+   		(all tId : TramId :-
+    	tId isin (dom tt) => 
+       		(all s : Stop :-
+       		s isin tt(tId) =>
+	           	(getDepartTime(s) - getArrivalTime(s)) <= minWaitingTime(getStopId(s),net) )),
+	
+	--7) A train may not overtake another (depart later, but arrive before)
+		
+	--8) Two trains may not depart at the same time on the same connection
+	--9) Time should always be ascending, no time travel
+	
+	--10) Start and end at the same stop
+	WF10 : TimeTable -> Bool
+	WF10 (tt) is
+        (all tId : TramId :-
+        tId isin (dom tt) =>
+        	getStopId( hd tt(tId) ) = getStopId(  getLast( tt(tId) )  )		),
+	
+	 getLast : Stop-list -> Stop
+     getLast(sList) is
+     	if (len sList = 1) then (hd sList)
+     	else getLast(sList) end,
+     	
+   	--11) Trams should not collide
+	WF11 : TimeTable >< Net -> Bool
+	WF11 (tt,net) is
+        (all tId1: TramId :-
+        tId1 isin (dom tt) => 
+        	(all t1s1 : Stop :-
+            t1s1 isin tt(tId1) =>
+            	(all t1s2 : Stop :-
+             	t1s2 isin tt(tId1) /\ t1s1 ~= t1s2 /\ areAdjacentStops(tt(tId1),t1s1,t1s2) =>
+             		(all tId2: TramId :-
+        			tId2 isin (dom tt) /\ tId1 ~= tId2 => 
+        				(all t2s1 : Stop :-
+            			t2s1 isin tt(tId2) =>
+            				(all t2s2 : Stop :-
+             				t2s2 isin tt(tId2) /\ t2s1 ~= t2s2 /\ areAdjacentStops(tt(tId2),t2s1,t2s2) /\
+             				getStopId(t1s1) = getStopId(t2s2) /\ getStopId(t1s2) = getStopId(t2s1) =>
+             					~(getDepartTime(t1s1) <= getArrivalTime(t2s2) /\ getDepartTime(t2s1) <= getArrivalTime(t1s2))
+             					))))))
+*/
+    value
+      wf11 : TimeTable >< Net -> Bool
+      wf11(tt,net) is
+        (all t1 : TramId :-
+          t1 isin dom tt =>
+            (all t1s : Stop :-
+              t1s isin tt(t1) =>
+                (all t2 : TramId :-
+                  t2 isin dom tt /\ t1 ~= t2 =>
+                    (all t2s : Stop :-
+                      t2s isin tt(t2) =>
+                      let (s11,at11,dt11,s12,at12) = t1s, (s21,at21,dt21,s22,at22) = t2s in
+                        s11 = s22 /\ s12 = s21 =>
+                          ~(dt11 <= at22 /\ dt21 <= at12)
+                      end
+        ))))
+
+    --Testing the range "start1 to end1" against the range "start2 to end2" is done by testing if...
+	--	( start1 <= end2 and start2 <= end1 )
+	--If TRUE, then the ranges overlap.         		
+             					
+	--12) Tram time tables should all end at the same minute?
+	
+	
+end
